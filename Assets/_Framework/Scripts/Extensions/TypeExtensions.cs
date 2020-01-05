@@ -42,37 +42,6 @@ namespace _Framework.Scripts.Extensions
             return type.IsSealed && type.IsAbstract;
         }
 
-        public static object Instance(this Type type)
-        {
-            var ctor = type.DelegateForCtor<object>(Type.EmptyTypes);
-            return ctor(null);
-        }
-
-        public static T Instance<T>(this Type type)
-        {
-            return Instance<T>(type, Type.EmptyTypes);
-        }
-
-        public static T Instance<T>(this Type type, Type[] paramTypes)
-        {
-            var ctor = type.DelegateForCtor<object>(paramTypes);
-            return (T)ctor(null);
-        }
-
-        public static MethodCaller<object, object> DelegateForCall(this Type type, string name, BindingFlags flags, params Type[] paramTypes)
-        {
-            var method = type.GetMethod(name, flags, null, paramTypes, null);
-            if (method == null)
-                throw new Exception("Method not found " + name);
-
-            return method.DelegateForCall();
-        }
-
-        public static MethodCaller<object, object> DelegateForCall(this Type type, string name, params Type[] paramTypes)
-        {
-            return DelegateForCall(type, name, Flags.InstanceAnyVisibility, paramTypes);
-        }
-
         public static bool IsMethodImplemented(this Type src, string methodName, Type[] paramTypes)
         {
             var method = src.GetMethod(methodName, paramTypes);
