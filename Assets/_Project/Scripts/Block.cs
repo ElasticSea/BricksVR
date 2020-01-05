@@ -7,15 +7,8 @@ namespace _Project.Scripts
 {
     public class Block : MonoBehaviour
     {
-        [SerializeField] private bool cloneActive;
-
         private BlockClone blockClone;
-
-        public bool CloneActive
-        {
-            get => cloneActive;
-            set => cloneActive = value;
-        }
+        private bool snapActive;
 
         private (Socket thisSocket, Socket otherSocket)[] GetConnections()
         {
@@ -55,7 +48,7 @@ namespace _Project.Scripts
         {
             var connections = GetConnections();
 
-            if (cloneActive && connections.Length >= 2)
+            if (snapActive && connections.Length >= 2)
             {
                 blockClone.gameObject.SetActive(true);
                 
@@ -89,23 +82,62 @@ namespace _Project.Scripts
             }
         }
 
+        public void BeginSnap()
+        {
+            snapActive = true;
+        }
+
+        public void EndSnap()
+        {
+            var result = blockClone.GetLock();
+
+            if (result.BlockA != null && result.BlockB != null)
+            {
+                ConnectBlocks(result);
+            }
+
+            snapActive = false;
+        }
+
+        private void ConnectBlocks(LockResult result)
+        {
+            foreach (var socket in result.BlockASockets.Concat(result.BlockBSockets))
+            {
+                Destroy(socket.gameObject);
+            }
+
+            var blockA = result.BlockA;
+            var blockB = result.BlockB;
+            
+            print($"Connecting {blockA.name} to {blockB.name}");
+            
+            blockA.transform.CopyWorldFrom(blockClone.transform);
+            var fixedJoint = blockA.gameObject.AddComponent<FixedJoint>();
+            fixedJoint.connectedBody = blockB.GetComponent<Rigidbody>();
+
+            blockA.Connect(blockB);
+
+            var blockLinks = blockA.GetAllLinks();
+            var connectedToGround = blockLinks.Any(l => l.GetComponent<Rigidbody>().isKinematic);
+            if (connectedToGround)
+            {
+                foreach (var link in blockLinks)
+                {
+                    if (link.GetComponent<Rigidbody>().isKinematic == false)
+                    {
+                        var block = link.GetComponent<Block>();
+                        Destroy(block.blockClone.gameObject);
+                        Destroy(block.GetComponent<BlockGrab>());
+                        Destroy(block);
+                    }
+                }
+            }
+        }
+
         private void Awake()
         {
             blockClone = new GameObject().AddComponent<BlockClone>();
             blockClone.Setup(this);
-            blockClone.OnLocked += result =>
-            {
-                foreach (var socket in result.BlockASockets.Concat(result.BlockBSockets))
-                {
-                    Destroy(socket.gameObject);
-                }
-
-                result.BlockA.transform.CopyWorldFrom(blockClone.transform);
-                var fixedJoint = result.BlockA.gameObject.AddComponent<FixedJoint>();
-                fixedJoint.connectedBody = result.BlockB.GetComponent<Rigidbody>();
-
-                CloneActive = false;
-            };
         }
 
         private void OnDrawGizmosSelected()

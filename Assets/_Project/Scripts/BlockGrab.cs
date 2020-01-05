@@ -9,13 +9,21 @@ namespace _Project.Scripts
         public override void GrabBegin(OVRGrabber hand, Collider grabPoint)
         {
             base.GrabBegin(hand, grabPoint);
-            block.CloneActive = true;
+            
+            foreach (var blockLink in GetComponent<BlockLink>().GetAllLinks())
+            {
+                blockLink.GetComponent<Block>().BeginSnap();
+            }
         }
 
         public override void GrabEnd(Vector3 linearVelocity, Vector3 angularVelocity)
         {
             base.GrabEnd(linearVelocity, angularVelocity);
-            block.CloneActive = false;
+            
+            foreach (var blockLink in GetComponent<BlockLink>().GetAllLinks())
+            {
+                blockLink.GetComponent<Block>().EndSnap();
+            }
         }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using _Framework.Scripts.Extensions;
@@ -8,8 +9,6 @@ namespace _Project.Scripts
 {
     public class BlockClone : MonoBehaviour
     {
-        public event Action<LockResult> OnLocked = result => { };
-
         private Dictionary<Socket, Socket> cloneToBlockMapping = new Dictionary<Socket, Socket>();
         public void Setup(Block block)
         {
@@ -40,7 +39,7 @@ namespace _Project.Scripts
 
                 var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
                 Destroy(sphere.GetComponent<Collider>());
-                sphere.transform.localScale = Vector3.one * socket.Radius;
+                sphere.transform.localScale = Vector3.one * socket.Radius * 2;
                 var mat = sphere.GetComponent<Renderer>().material;
                 mat.color = Color.blue;
                 
@@ -49,6 +48,7 @@ namespace _Project.Scripts
         }
         
         private Block block;
+        private SocketPair[] locked;
 
         private const float LOCK_DISTANCE = 0.01f;
 
@@ -58,7 +58,7 @@ namespace _Project.Scripts
 
             var cloneSockets = GetComponentsInChildren<Socket>();
             var candidates = cloneSockets
-                .Select(s => new {Socket=s, Connection=s.Trigger().FirstOrDefault()})
+                .Select(s => new SocketPair {Socket=s, Connection=s.Trigger().FirstOrDefault()})
                 .Where(pair => pair.Connection != null)
                 .Where(pair => blockSockets.Contains(pair.Connection) == false)
                 .ToArray();
@@ -68,7 +68,7 @@ namespace _Project.Scripts
                 cloneSocket.transform.GetChild(0).gameObject.SetActive(false);
             }
 
-            var locked = candidates.Where(pair =>
+            locked = candidates.Where(pair =>
             {
                 var distance = pair.Connection.transform.position.Distance(pair.Socket.transform.position);
                 return distance < LOCK_DISTANCE;
@@ -79,27 +79,36 @@ namespace _Project.Scripts
             {
                 pair.Socket.transform.GetChild(0).gameObject.SetActive(true);
             }
+        }
 
-            if (OVRInput.Get(OVRInput.RawButton.X))
+        private void OnDisable()
+        {
+            locked = new SocketPair[0];
+        }
+
+        public LockResult GetLock()
+        {
+            return new LockResult
             {
-                var result = new LockResult
-                {
-                    BlockA = block,
-                    BlockASockets = locked.Select(pair => cloneToBlockMapping[pair.Socket]).ToArray(),
-                    BlockB = locked.FirstOrDefault()?.Connection.GetComponentInParent<Block>(),
-                    BlockBSockets = locked.Select(pair => pair.Connection).ToArray()
-                };
-
-                OnLocked(result);
-            }
+                BlockA = block.GetComponent<BlockLink>(),
+                BlockASockets = locked.Select(pair => cloneToBlockMapping[pair.Socket]).ToArray(),
+                BlockB = locked.FirstOrDefault()?.Connection.GetComponentInParent<BlockLink>(),
+                BlockBSockets = locked.Select(pair => pair.Connection).ToArray()
+            };
         }
     }
 
     public class LockResult
     {
-        public Block BlockA;
+        public BlockLink BlockA;
         public Socket[] BlockASockets;
-        public Block BlockB;
+        public BlockLink BlockB;
         public Socket[] BlockBSockets;
+    }
+
+    public class SocketPair
+    {
+        public Socket Socket;
+        public Socket Connection;
     }
 }
