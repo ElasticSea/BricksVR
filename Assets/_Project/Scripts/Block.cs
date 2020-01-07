@@ -10,7 +10,7 @@ namespace _Project.Scripts
         private BlockClone blockClone;
         private bool snapActive;
 
-        private (Socket thisSocket, Socket otherSocket)[] GetConnections()
+        private (Transform thisSocket, Transform otherSocket)[] GetConnections()
         {
             var sockets = transform.GetComponentsInChildren<Socket>();
             var connected = new Socket[sockets.Length];
@@ -40,7 +40,7 @@ namespace _Project.Scripts
                 })
                 .Where(it => it != null)
                 .OrderBy(arg => arg.Distance)
-                .Select(arg => (sockets[arg.Index], connected[arg.Index]))
+                .Select(arg => (sockets[arg.Index].transform, connected[arg.Index].transform))
                 .ToArray();
         }
         
@@ -53,28 +53,37 @@ namespace _Project.Scripts
                 blockClone.gameObject.SetActive(true);
                 
                 // Chose two closes connections and choose origin and alignment.
-                var soc0 = connections[0].thisSocket;
-                var con0 = connections[0].otherSocket;
-                var soc1 = connections[1].thisSocket;
-                var con1 = connections[1].otherSocket;
+                var thisSocketA = connections[0].thisSocket;
+                var otherSocketA = connections[0].otherSocket;
+                var thisSocketB = connections[1].thisSocket;
+                var otherSocketB = connections[1].otherSocket;
 
-                var oldDir = (soc1.transform.position - soc0.transform.position).normalized;
-                var newDir = (con1.transform.position - con0.transform.position).normalized;
+                var thisDir = (thisSocketB.position - thisSocketA.position).normalized;
+                var otherDir = (otherSocketB.position - otherSocketA.position).normalized;
 
-                var projectA = -soc0.transform.up.ProjectOnPlane(newDir);
-                var projectB = con0.transform.up.ProjectOnPlane(newDir);
-
-                var angle = Vector3.SignedAngle(projectA, projectB, newDir);
-                var correction = Quaternion.AngleAxis(angle, newDir);
+                var thisToOtherRotation = Quaternion.FromToRotation(thisDir, otherDir);
                 
-                var rotAdjust = Quaternion.FromToRotation(oldDir, newDir);
-                var rotation = (correction * rotAdjust *  transform.rotation).eulerAngles;
+                // Correct for rotation along the direction (multiple valid states for resulting rotation)
+                var correctedUpVector = thisToOtherRotation * -thisSocketA.up;
+                var angle = Vector3.SignedAngle(correctedUpVector, otherSocketA.up, otherDir);
+                var correction = Quaternion.AngleAxis(angle, otherDir);
+                
+                var targetRotation = correction * thisToOtherRotation *  transform.rotation;
 
-                blockClone.transform.rotation = Quaternion.Euler(rotation);
-                blockClone.transform.position = transform.transform.position;
-                var localOffset2 = transform.InverseTransformPoint(soc0.transform.position);
-                var dif = con0.transform.position - blockClone.transform.TransformPoint(localOffset2);
-                blockClone.transform.position += dif;
+//                var socketWorld = thisSocketA.transform.position;
+//                var socketLocalToBlock = transform.InverseTransformPoint(socketWorld);
+//                this.socketWorld = transform.TransformPoint(correction * thisToOtherRotation * socketLocalToBlock);
+//                var dif = otherSocketA.transform.position - this.socketWorld;
+//                
+//                blockClone.transform.rotation = targetRotation;
+//                blockClone.transform.position = transform.position + dif;
+
+                var cloneTransform = blockClone.transform;
+                cloneTransform.rotation = targetRotation;
+                cloneTransform.position = transform.position;
+                var adjustedPosition = cloneTransform.TransformPoint(transform.InverseTransformPoint(thisSocketA.position));
+                var offset = otherSocketA.position - adjustedPosition;
+                cloneTransform.position += offset;
             }
             else
             {

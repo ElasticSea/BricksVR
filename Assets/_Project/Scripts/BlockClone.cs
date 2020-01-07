@@ -50,7 +50,7 @@ namespace _Project.Scripts
         private Block block;
         private SocketPair[] locked;
 
-        private const float LOCK_DISTANCE = 0.01f;
+        private const float LockDistanceEpsilon = 1E-06f;
 
         private void Update()
         {
@@ -71,7 +71,8 @@ namespace _Project.Scripts
             locked = candidates.Where(pair =>
             {
                 var distance = pair.Connection.transform.position.Distance(pair.Socket.transform.position);
-                return distance < LOCK_DISTANCE;
+                print(distance);
+                return distance < LockDistanceEpsilon;
             }).ToArray();
 
 
