@@ -100,26 +100,26 @@ namespace _Project.Scripts
         {
             var result = blockClone.GetLock();
 
-            if (result.BlockA != null && result.BlockB != null)
+            if (result.OtherConnections.Any())
             {
-                ConnectBlocks(result);
+                foreach (var socket in result.ThisConnection.Sockets.Concat(result.OtherConnections.SelectMany(o => o.Sockets)))
+                {
+                    Destroy(socket.gameObject);
+                }
+
+                foreach (var otherConnection in result.OtherConnections)
+                {
+                    var blockA = result.ThisConnection.Block;
+                    var blockB = otherConnection.Block;
+                    ConnectBlocks(blockA, blockB);
+                }
             }
 
             snapActive = false;
         }
 
-        private void ConnectBlocks(LockResult result)
+        private void ConnectBlocks(BlockLink blockA, BlockLink blockB)
         {
-            foreach (var socket in result.BlockASockets.Concat(result.BlockBSockets))
-            {
-                Destroy(socket.gameObject);
-            }
-
-            var blockA = result.BlockA;
-            var blockB = result.BlockB;
-            
-            print($"Connecting {blockA.name} to {blockB.name}");
-            
             blockA.transform.CopyWorldFrom(blockClone.transform);
             var fixedJoint = blockA.gameObject.AddComponent<FixedJoint>();
             fixedJoint.connectedBody = blockB.GetComponent<Rigidbody>();
@@ -135,9 +135,12 @@ namespace _Project.Scripts
                     if (link.GetComponent<Rigidbody>().isKinematic == false)
                     {
                         var block = link.GetComponent<Block>();
-                        Destroy(block.blockClone.gameObject);
-                        Destroy(block.GetComponent<BlockGrab>());
-                        Destroy(block);
+                        if (block)
+                        {
+                            Destroy(block.blockClone.gameObject);
+                            Destroy(block.GetComponent<BlockGrab>());
+                            Destroy(block);
+                        }
                     }
                 }
             }

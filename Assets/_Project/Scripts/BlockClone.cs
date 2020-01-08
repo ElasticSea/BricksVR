@@ -58,9 +58,9 @@ namespace _Project.Scripts
 
             var cloneSockets = GetComponentsInChildren<Socket>();
             var candidates = cloneSockets
-                .Select(s => new SocketPair {Socket=s, Connection=s.Trigger().FirstOrDefault()})
-                .Where(pair => pair.Connection != null)
-                .Where(pair => blockSockets.Contains(pair.Connection) == false)
+                .Select(s => new SocketPair {ThisSocket=s, OtherSocket=s.Trigger().FirstOrDefault()})
+                .Where(pair => pair.OtherSocket != null)
+                .Where(pair => blockSockets.Contains(pair.OtherSocket) == false)
                 .ToArray();
 
             foreach (var cloneSocket in cloneSockets)
@@ -70,7 +70,7 @@ namespace _Project.Scripts
 
             locked = candidates.Where(pair =>
             {
-                var distance = pair.Connection.transform.position.Distance(pair.Socket.transform.position);
+                var distance = pair.OtherSocket.transform.position.Distance(pair.ThisSocket.transform.position);
                 print(distance);
                 return distance < LockDistanceEpsilon;
             }).ToArray();
@@ -78,7 +78,7 @@ namespace _Project.Scripts
 
             foreach (var pair in locked)
             {
-                pair.Socket.transform.GetChild(0).gameObject.SetActive(true);
+                pair.ThisSocket.transform.GetChild(0).gameObject.SetActive(true);
             }
         }
 
@@ -91,25 +91,39 @@ namespace _Project.Scripts
         {
             return new LockResult
             {
-                BlockA = block.GetComponent<BlockLink>(),
-                BlockASockets = locked.Select(pair => cloneToBlockMapping[pair.Socket]).ToArray(),
-                BlockB = locked.FirstOrDefault()?.Connection.GetComponentInParent<BlockLink>(),
-                BlockBSockets = locked.Select(pair => pair.Connection).ToArray()
+                ThisConnection = new Connection
+                {
+                    Block = block.GetComponent<BlockLink>(),
+                    Sockets = locked.Select(pair => cloneToBlockMapping[pair.ThisSocket]).ToArray()
+                },
+                OtherConnections = locked
+                    .Select(l => l.OtherSocket)
+                    .GroupBy(l => l.GetComponentInParent<BlockLink>())
+                    .Select(g => new Connection
+                    {
+                        Block = g.Key,
+                        Sockets = g.ToArray()
+                    })
+                    .ToArray()
             };
         }
     }
 
     public class LockResult
     {
-        public BlockLink BlockA;
-        public Socket[] BlockASockets;
-        public BlockLink BlockB;
-        public Socket[] BlockBSockets;
+        public Connection ThisConnection;
+        public Connection[] OtherConnections;
+    }
+
+    public class Connection
+    {
+        public BlockLink Block;
+        public Socket[] Sockets;
     }
 
     public class SocketPair
     {
-        public Socket Socket;
-        public Socket Connection;
+        public Socket ThisSocket;
+        public Socket OtherSocket;
     }
 }
