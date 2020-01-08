@@ -58,32 +58,7 @@ namespace _Project.Scripts
                 var thisSocketB = connections[1].thisSocket;
                 var otherSocketB = connections[1].otherSocket;
 
-                var thisDir = (thisSocketB.position - thisSocketA.position).normalized;
-                var otherDir = (otherSocketB.position - otherSocketA.position).normalized;
-
-                var thisToOtherRotation = Quaternion.FromToRotation(thisDir, otherDir);
-                
-                // Correct for rotation along the direction (multiple valid states for resulting rotation)
-                var correctedUpVector = thisToOtherRotation * -thisSocketA.up;
-                var angle = Vector3.SignedAngle(correctedUpVector, otherSocketA.up, otherDir);
-                var correction = Quaternion.AngleAxis(angle, otherDir);
-                
-                var targetRotation = correction * thisToOtherRotation *  transform.rotation;
-
-//                var socketWorld = thisSocketA.transform.position;
-//                var socketLocalToBlock = transform.InverseTransformPoint(socketWorld);
-//                this.socketWorld = transform.TransformPoint(correction * thisToOtherRotation * socketLocalToBlock);
-//                var dif = otherSocketA.transform.position - this.socketWorld;
-//                
-//                blockClone.transform.rotation = targetRotation;
-//                blockClone.transform.position = transform.position + dif;
-
-                var cloneTransform = blockClone.transform;
-                cloneTransform.rotation = targetRotation;
-                cloneTransform.position = transform.position;
-                var adjustedPosition = cloneTransform.TransformPoint(transform.InverseTransformPoint(thisSocketA.position));
-                var offset = otherSocketA.position - adjustedPosition;
-                cloneTransform.position += offset;
+                Snap(thisSocketA, thisSocketB, otherSocketA, otherSocketB);
             }
             else
             {
@@ -91,9 +66,35 @@ namespace _Project.Scripts
             }
         }
 
+        private void Snap(Transform thisA, Transform thisB, Transform otherA, Transform otherB)
+        {
+            var thisDir = (thisB.position - thisA.position).normalized;
+            var otherDir = (otherB.position - otherA.position).normalized;
+
+            var thisToOtherRotation = Quaternion.FromToRotation(thisDir, otherDir);
+
+            // Correct for rotation along the direction (multiple valid states for resulting rotation)
+            var correctedUpVector = thisToOtherRotation * -thisA.up;
+            var angle = Vector3.SignedAngle(correctedUpVector, otherA.up, otherDir);
+            var correction = Quaternion.AngleAxis(angle, otherDir);
+
+            var targetRotation = correction * thisToOtherRotation * transform.rotation;
+
+            blockClone.transform.rotation = targetRotation;
+            
+            // TODO Get the resulting position and rotation without touching the transforms
+            // Adjust position
+            blockClone.transform.position = transform.position;
+            var blockSocketLocalPosition = transform.InverseTransformPoint(thisA.position);
+            var adjustedWorldPosition = blockClone.transform.TransformPoint(blockSocketLocalPosition);
+            var offset = otherA.position - adjustedWorldPosition;
+            blockClone.transform.position += offset;
+        }
+
         public void BeginSnap()
         {
             snapActive = true;
+            GetComponent<Collider>().enabled = false;
         }
 
         public void EndSnap()
@@ -106,6 +107,7 @@ namespace _Project.Scripts
             }
 
             snapActive = false;
+            GetComponent<Collider>().enabled = true;
         }
 
         private void ConnectBlocks(LockResult result)
