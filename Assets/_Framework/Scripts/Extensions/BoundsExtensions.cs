@@ -53,5 +53,12 @@ namespace _Framework.Scripts.Extensions
                     return a;
                 });
         }
+
+        public static Collider[] OverlapBox(this BoxCollider collider)
+        {
+            var worldCenter = collider.transform.TransformPoint(collider.center);
+            var worldExtents = collider.transform.TransformVector(collider.extents);
+            return Physics.OverlapBox(worldCenter, worldExtents, collider.transform.rotation);
+        }
     }
 }

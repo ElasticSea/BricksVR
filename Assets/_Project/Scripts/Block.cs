@@ -94,7 +94,6 @@ namespace _Project.Scripts
         public void BeginSnap()
         {
             snapActive = true;
-            GetComponent<Collider>().enabled = false;
         }
 
         public void EndSnap()
@@ -107,7 +106,6 @@ namespace _Project.Scripts
             }
 
             snapActive = false;
-            GetComponent<Collider>().enabled = true;
         }
 
         private void ConnectBlocks(LockResult result)
