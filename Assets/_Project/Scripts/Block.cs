@@ -103,6 +103,7 @@ namespace _Project.Scripts
 
         public void BeginSnap()
         {
+            SwitchLayerInChildren("Default", "Snap");
             snapActive = true;
         }
 
@@ -115,7 +116,19 @@ namespace _Project.Scripts
                 ConnectBlocks(result);
             }
 
+            SwitchLayerInChildren("Snap", "Default");
             snapActive = false;
+        }
+
+        private void SwitchLayerInChildren(string from, string to)
+        {
+            foreach (var child in transform.AllChildren(true))
+            {
+                if (child.gameObject.layer == LayerMask.NameToLayer(from))
+                {
+                    child.gameObject.layer = LayerMask.NameToLayer(to);
+                }
+            }
         }
 
         private void ConnectBlocks((Socket ThisSocket, Socket OtherSocket)[] result)
@@ -200,6 +213,8 @@ namespace _Project.Scripts
                 var from = a.transform.TransformPoint(a.gameObject.GetLocalCompositeMeshBounds().Value.center);
                 var to = b.transform.TransformPoint(b.gameObject.GetLocalCompositeMeshBounds().Value.center);
                 Gizmos.DrawLine(from, to);
+                Gizmos.DrawSphere(from, .0025f);
+                Gizmos.DrawSphere(to, .0025f);
             }
         }
     }
