@@ -150,6 +150,10 @@ namespace _Project.Scripts
                 foreach (var child in block.transform.Children())
                 {
                     child.transform.SetParent(allBlocks[0].transform, true);
+                    
+                    // Snap position & rotation
+                    child.transform.localPosition = child.transform.localPosition.Snap(0.0001f);
+                    child.transform.localRotation = Quaternion.Euler(child.transform.localRotation.eulerAngles.Snap(45f));
                 }
                 DestroyImmediate(block);
             }
