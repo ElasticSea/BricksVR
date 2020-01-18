@@ -51,27 +51,32 @@ namespace _Project.Scripts
         
         private void FixedUpdate()
         {
-            var connections = GetConnections();
-
-            if (snapActive && connections.Length >= 2)
-            {
-                blockClone.gameObject.SetActive(true);
-                
-                // Chose two closes connections and choose origin and alignment.
-                var thisSocketA = connections[0].thisSocket;
-                var otherSocketA = connections[0].otherSocket;
-                var thisSocketB = connections[1].thisSocket;
-                var otherSocketB = connections[1].otherSocket;
-
-                Snap(thisSocketA, thisSocketB, otherSocketA, otherSocketB);
-            }
-            else
-            {
-                blockClone.gameObject.SetActive(false);
-            }
+            var snapSucessful = TrySnap();
+            blockClone.gameObject.SetActive(snapSucessful);
         }
 
-        private void Snap(Transform thisA, Transform thisB, Transform otherA, Transform otherB)
+        private bool TrySnap()
+        {
+            if (snapActive == false) return false;
+
+            var connections = GetConnections();
+
+            if (connections.Length < 2) return false;
+
+            blockClone.gameObject.SetActive(true);
+
+            // Chose two closes connections and choose origin and alignment.
+            var thisSocketA = connections[0].thisSocket;
+            var otherSocketA = connections[0].otherSocket;
+            var thisSocketB = connections[1].thisSocket;
+            var otherSocketB = connections[1].otherSocket;
+
+            Align(thisSocketA, thisSocketB, otherSocketA, otherSocketB);
+            
+            return true;
+        }
+
+        private void Align(Transform thisA, Transform thisB, Transform otherA, Transform otherB)
         {
             var thisDir = (thisB.position - thisA.position).normalized;
             var otherDir = (otherB.position - otherA.position).normalized;
@@ -103,7 +108,7 @@ namespace _Project.Scripts
 
         public void EndSnap()
         {
-            var result = blockClone.Locked;
+            var result = blockClone.Snap;
 
             if (result.Any())
             {
@@ -149,7 +154,8 @@ namespace _Project.Scripts
                 DestroyImmediate(block);
             }
 
-            allBlocks[0].gameObject.AddComponent<Rigidbody>();
+            var newRb = allBlocks[0].gameObject.AddComponent<Rigidbody>();
+            newRb.interpolation = RigidbodyInterpolation.Interpolate;
             var blk = allBlocks[0].gameObject.AddComponent<Block>();
             var blockGrab = allBlocks[0].gameObject.GetComponent<BlockGrab>();
             blockGrab.SetupGrabPoints(allBlocks[0].GetComponentsInChildren<Collider>());

@@ -237,7 +237,7 @@ public class Outline : MonoBehaviour {
     return smoothNormals;
   }
 
-  void UpdateMaterialProperties() {
+  public void UpdateMaterialProperties() {
 
     // Apply properties according to mode
     outlineFillMaterial.SetColor("_OutlineColor", outlineColor);

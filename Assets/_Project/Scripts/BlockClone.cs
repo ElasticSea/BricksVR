@@ -11,7 +11,7 @@ namespace _Project.Scripts
     {
         private Block block;
         private Dictionary<Socket, Socket> cloneToBlockMapping;
-        public (Socket ThisSocket, Socket OtherSocket)[] Locked { get; private set; }
+        public (Socket ThisSocket, Socket OtherSocket)[] Snap { get; private set; }
 
         public Block Block
         {
@@ -33,10 +33,9 @@ namespace _Project.Scripts
             collidersOverllaping.Clear();
 
             var color = isValid ? Color.blue : Color.red;
-            foreach (var outline in GetComponentsInChildren<Outline>())
-            {
-                outline.OutlineColor = color;
-            }
+            var component = GetComponent<Outline>();
+            component.OutlineColor = color;
+            component.UpdateMaterialProperties();
 
             foreach (var renderer in GetComponentsInChildren<MeshRenderer>())
             {
@@ -48,7 +47,7 @@ namespace _Project.Scripts
 
             if (isValid == false)
             {
-                Locked = new (Socket ThisSocket, Socket OtherSocket)[0];
+                Snap = new (Socket ThisSocket, Socket OtherSocket)[0];
                 return;
             }
             
@@ -66,7 +65,7 @@ namespace _Project.Scripts
                 cloneSocket.transform.GetChild(0).gameObject.SetActive(false);
             }
 
-            Locked = candidates
+            Snap = candidates
                 .Where(pair =>
                 {
                     var (thisSocket, otherSocket) = pair;
@@ -81,7 +80,7 @@ namespace _Project.Scripts
                 .ToArray();
 
 
-            foreach (var pair in Locked)
+            foreach (var pair in Snap)
             {
                 pair.ThisSocket.transform.GetChild(0).gameObject.SetActive(true);
             }
@@ -158,10 +157,10 @@ namespace _Project.Scripts
                 var material = new Material(Shader.Find("Standard"));
                 material.SetupMaterialWithBlendMode(MaterialExtensions.Mode.Fade);
                 meshRenderer.material = material;
-                
-                var addComponent = meshRenderer.gameObject.AddComponent<Outline>();
-                addComponent.OutlineMode = Outline.Mode.OutlineAll;
             }
+                
+            var addComponent = blockClone.gameObject.AddComponent<Outline>();
+            addComponent.OutlineMode = Outline.Mode.OutlineAll;
 
             blockClone.gameObject.SetActive(false);
 
@@ -195,7 +194,7 @@ namespace _Project.Scripts
 
         private void OnDisable()
         {
-            Locked = new (Socket ThisSocket, Socket OtherSocket)[0];
+            Snap = new (Socket ThisSocket, Socket OtherSocket)[0];
         }
     }
 }
