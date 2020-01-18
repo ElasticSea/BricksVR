@@ -6,11 +6,29 @@ namespace _Project.Scripts
 {
     public class Socket : MonoBehaviour
     {
+        [SerializeField] private Block owner;
         [SerializeField] private SocketType type;
         [SerializeField] private float radius = 0.125f;
-        [SerializeField] private bool active = true;
         
         private SphereCollider trigger;
+
+        public Block Owner
+        {
+            get
+            {
+                if (owner == null)
+                {
+                    owner = GetComponentInParent<Block>();
+
+                    if (owner == null)
+                    {
+                        throw new InvalidOperationException("This socket does not belong to any block. And no parent block could not be found.");
+                    }
+                }
+                return owner;
+            }
+            set => owner = value;
+        }
 
         public SocketType Type
         {
@@ -28,22 +46,11 @@ namespace _Project.Scripts
             }
         }
 
-        public bool Active
-        {
-            get => active;
-            set
-            {
-                active = value;
-                if(trigger) trigger.enabled = value;
-            }
-        }
-
-        private void Start()
+        private void Awake()
         {
             trigger = gameObject.AddComponent<SphereCollider>();
             trigger.isTrigger = trigger;
             Radius = radius;
-            Active = active;
         }
 
         public Socket[] Trigger()
@@ -56,13 +63,12 @@ namespace _Project.Scripts
             return candidates
                 .Select(c => c.GetComponent<Socket>())
                 .Where(s => s.Type != Type)
+                .Where(s => s.Owner != Owner)
                 .ToArray();
         }
 
         private void OnDrawGizmos()
         {
-            if (Active == false) return;
-            
             var candidates = Trigger();
             foreach (var candidate in candidates)
             {

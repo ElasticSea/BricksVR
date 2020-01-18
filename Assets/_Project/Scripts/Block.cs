@@ -43,6 +43,11 @@ namespace _Project.Scripts
                 .Select(arg => (sockets[arg.Index].transform, connected[arg.Index].transform))
                 .ToArray();
         }
+
+        private void Start()
+        {
+            blockClone = BlockClone.SetupBlock(this);
+        }
         
         private void FixedUpdate()
         {
@@ -98,58 +103,57 @@ namespace _Project.Scripts
 
         public void EndSnap()
         {
-            var result = blockClone.GetLock();
+            var result = blockClone.Locked;
 
-            if (result.OtherConnections.Any())
+            if (result.Any())
             {
-                foreach (var socket in result.ThisConnection.Sockets.Concat(result.OtherConnections.SelectMany(o => o.Sockets)))
-                {
-                    Destroy(socket.gameObject);
-                }
-
-                foreach (var otherConnection in result.OtherConnections)
-                {
-                    var blockA = result.ThisConnection.Block;
-                    var blockB = otherConnection.Block;
-                    ConnectBlocks(blockA, blockB);
-                }
+                ConnectBlocks(result);
             }
 
             snapActive = false;
         }
 
-        private void ConnectBlocks(BlockLink blockA, BlockLink blockB)
+        private void ConnectBlocks((Socket ThisSocket, Socket OtherSocket)[] result)
         {
-            blockA.transform.CopyWorldFrom(blockClone.transform);
-            var fixedJoint = blockA.gameObject.AddComponent<FixedJoint>();
-            fixedJoint.connectedBody = blockB.GetComponent<Rigidbody>();
+            // Align this block
+            transform.CopyWorldFrom(blockClone.transform);
+            
+            var allBlocks = result
+                .SelectMany(tuple => new[] {tuple.ThisSocket, tuple.OtherSocket})
+                .Select(socket => socket.GetComponentInParent<Block>().gameObject)
+                .Distinct()
+                .ToList();
 
-            blockA.Connect(blockB);
-
-            var blockLinks = blockA.GetAllLinks();
-            var connectedToGround = blockLinks.Any(l => l.GetComponent<Rigidbody>().isKinematic);
-            if (connectedToGround)
+            foreach (var (thisSocket, otherSocket) in result)
             {
-                foreach (var link in blockLinks)
-                {
-                    if (link.GetComponent<Rigidbody>().isKinematic == false)
-                    {
-                        var block = link.GetComponent<Block>();
-                        if (block)
-                        {
-                            Destroy(block.blockClone.gameObject);
-                            Destroy(block.GetComponent<BlockGrab>());
-                            Destroy(block);
-                        }
-                    }
-                }
-            }
-        }
+                var thisLink = thisSocket.GetComponentInParent<BlockLink>();
+                var otherLink = otherSocket.GetComponentInParent<BlockLink>();
 
-        private void Awake()
-        {
-            blockClone = new GameObject().AddComponent<BlockClone>();
-            blockClone.Setup(this);
+                // Just connnect the links
+                thisLink.Connect(otherLink);
+            }
+
+            DestroyImmediate(blockClone.gameObject);
+            foreach (var block in allBlocks)
+            {
+                DestroyImmediate(block.GetComponent<Rigidbody>());
+                DestroyImmediate(block.GetComponent<Block>());
+            }
+            
+            foreach (var block in allBlocks.Skip(1))
+            {
+                foreach (var child in block.transform.Children())
+                {
+                    child.transform.SetParent(allBlocks[0].transform, true);
+                }
+                DestroyImmediate(block);
+            }
+
+            allBlocks[0].gameObject.AddComponent<Rigidbody>();
+            var blk = allBlocks[0].gameObject.AddComponent<Block>();
+            var blockGrab = allBlocks[0].gameObject.GetComponent<BlockGrab>();
+            blockGrab.SetupGrabPoints(allBlocks[0].GetComponentsInChildren<Collider>());
+            blockGrab.Block = blk;
         }
 
         private void OnDrawGizmosSelected()
@@ -169,6 +173,15 @@ namespace _Project.Scripts
                 Gizmos.color = color.SetAlpha(.5f);
                 Gizmos.DrawSphere(from, size);
                 Gizmos.DrawSphere(to, size);
+                Gizmos.DrawLine(from, to);
+            }
+
+            foreach (var (a, b) in GetComponentInChildren<BlockLink>().GetAllEdges())
+            {
+                Gizmos.color = Color.yellow;
+
+                var from = a.transform.TransformPoint(a.gameObject.GetLocalCompositeMeshBounds().Value.center);
+                var to = b.transform.TransformPoint(b.gameObject.GetLocalCompositeMeshBounds().Value.center);
                 Gizmos.DrawLine(from, to);
             }
         }

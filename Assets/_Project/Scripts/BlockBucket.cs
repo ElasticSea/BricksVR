@@ -14,12 +14,17 @@ namespace _Project.Scripts
         {
             var blocksInside = insideTrigger.OverlapBox();
 
-            var isInside = blocksInside.Any(b => b.transform == lastInstance?.transform);
+            var isInside = blocksInside.Any(b =>
+            {
+                var block = b.GetComponentInParent<Block>();
+                return  block != null && block == lastInstance;
+            });
+            
             if (isInside == false)
             {
                 lastInstance = Instantiate(blockPrefab, null, false);
                 var placementCenter = insideTrigger.transform.TransformPoint(insideTrigger.center);
-                var brickSize = lastInstance.transform.TransformVector(lastInstance.GetComponent<BoxCollider>().size);
+                var brickSize = lastInstance.transform.TransformVector(lastInstance.gameObject.GetCompositeColliderBounds().size);
                 lastInstance.transform.position = placementCenter - brickSize / 2;
             }
         }

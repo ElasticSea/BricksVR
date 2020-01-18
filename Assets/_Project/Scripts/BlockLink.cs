@@ -5,7 +5,7 @@ namespace _Project.Scripts
 {
     public class BlockLink : MonoBehaviour
     {
-        private List<BlockLink> connections = new List<BlockLink>();
+        private HashSet<BlockLink> connections = new HashSet<BlockLink>();
 
         public void Connect(BlockLink link)
         {
@@ -34,6 +34,26 @@ namespace _Project.Scripts
                 {
                     allConnections.Add(connection);
                     GetAllLinks(connection, allConnections);
+                }
+            }
+        }
+
+        public HashSet<(BlockLink,BlockLink)> GetAllEdges()
+        {
+            var allConnections = new HashSet<(BlockLink,BlockLink)>();
+            GetAllEdges(this, allConnections);
+            return allConnections;
+        }
+
+        private void GetAllEdges(BlockLink parent, HashSet<(BlockLink,BlockLink)> allConnections)
+        {
+            foreach (var connection in parent.connections)
+            {
+                var edge = (parent, connection);
+                if (!allConnections.Contains(edge))
+                {
+                    allConnections.Add(edge);
+                    GetAllEdges(connection, allConnections);
                 }
             }
         }

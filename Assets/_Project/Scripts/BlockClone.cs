@@ -9,56 +9,54 @@ namespace _Project.Scripts
 {
     public class BlockClone : MonoBehaviour
     {
-        private Dictionary<Socket, Socket> cloneToBlockMapping = new Dictionary<Socket, Socket>();
-        public void Setup(Block block)
-        {
-            this.block = block;
-            gameObject.AddComponent<MeshFilter>().mesh = block.GetComponent<MeshFilter>().mesh;
-
-            var material = new Material(Shader.Find("Standard"));
-            material.color = Color.blue.SetAlpha(0.15f);
-            material.SetupMaterialWithBlendMode(MaterialExtensions.Mode.Fade);
-            gameObject.AddComponent<MeshRenderer>().material = material;
-            var addComponent = gameObject.AddComponent<Outline>();
-            addComponent.OutlineMode = Outline.Mode.OutlineAll;
-            addComponent.OutlineColor = Color.blue;
-
-            gameObject.transform.CopyWorldFrom(block.transform);
-            gameObject.SetActive(false);
-
-            foreach (var socket in block.GetComponentsInChildren<Socket>())
-            {
-                var cloneSocket = new GameObject().AddComponent<Socket>();
-                cloneSocket.Radius = socket.Radius;
-                cloneSocket.Type = socket.Type;
-                cloneSocket.Active = false;
-                cloneSocket.transform.SetParent(gameObject.transform, false);
-                cloneSocket.transform.position = socket.transform.position;
-                cloneSocket.transform.rotation = socket.transform.rotation;
-                cloneToBlockMapping[cloneSocket] = socket;
-
-                var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                Destroy(sphere.GetComponent<Collider>());
-                sphere.transform.localScale = Vector3.one * socket.Radius * 2;
-                var mat = sphere.GetComponent<Renderer>().material;
-                mat.color = Color.blue;
-                
-                sphere.transform.SetParent(cloneSocket.transform, false);
-            }
-        }
-        
         private Block block;
-        private SocketPair[] locked;
+        private Dictionary<Socket, Socket> cloneToBlockMapping;
+        public (Socket ThisSocket, Socket OtherSocket)[] Locked { get; private set; }
+
+        public Block Block
+        {
+            get => block;
+            set => block = value;
+        }
+
+        public Dictionary<Socket, Socket> CloneToBlockMapping
+        {
+            get => cloneToBlockMapping;
+            set => cloneToBlockMapping = value;
+        }
 
         private const float LockDistanceEpsilon = 1E-06f;
 
         private void Update()
         {
+            var isValid = IsPositionValid();
+            collidersOverllaping.Clear();
+
+            var color = isValid ? Color.blue : Color.red;
+            foreach (var outline in GetComponentsInChildren<Outline>())
+            {
+                outline.OutlineColor = color;
+            }
+
+            foreach (var renderer in GetComponentsInChildren<MeshRenderer>())
+            {
+                foreach (var mat in renderer.materials)
+                {
+                    mat.color = color.SetAlpha(.4f);
+                }
+            }
+
+            if (isValid == false)
+            {
+                Locked = new (Socket ThisSocket, Socket OtherSocket)[0];
+                return;
+            }
+            
             var blockSockets = block.GetComponentsInChildren<Socket>().ToSet();
 
             var cloneSockets = GetComponentsInChildren<Socket>();
             var candidates = cloneSockets
-                .Select(s => new SocketPair {ThisSocket=s, OtherSocket=s.Trigger().FirstOrDefault()})
+                .Select(s => (ThisSocket: s, OtherSocket: s.Trigger().FirstOrDefault()))
                 .Where(pair => pair.OtherSocket != null)
                 .Where(pair => blockSockets.Contains(pair.OtherSocket) == false)
                 .ToArray();
@@ -68,62 +66,136 @@ namespace _Project.Scripts
                 cloneSocket.transform.GetChild(0).gameObject.SetActive(false);
             }
 
-            locked = candidates.Where(pair =>
-            {
-                var distance = pair.OtherSocket.transform.position.Distance(pair.ThisSocket.transform.position);
-                print(distance);
-                return distance < LockDistanceEpsilon;
-            }).ToArray();
+            Locked = candidates
+                .Where(pair =>
+                {
+                    var (thisSocket, otherSocket) = pair;
+                    var distance = otherSocket.transform.position.Distance(thisSocket.transform.position);
+                    return distance < LockDistanceEpsilon;
+                })
+                .Select(pair =>
+                {
+                    var (thisSocket, otherSocket) = pair;
+                    return (cloneToBlockMapping[thisSocket], otherSocket);
+                })
+                .ToArray();
 
 
-            foreach (var pair in locked)
+            foreach (var pair in Locked)
             {
                 pair.ThisSocket.transform.GetChild(0).gameObject.SetActive(true);
             }
         }
 
+        private class SocketTag : MonoBehaviour
+        {
+            public string id;
+        }
+
+        public static BlockClone SetupBlock(Block block)
+        {
+            var dict = new Dictionary<string, SocketTag>();
+              
+            foreach (var socket in block.GetComponentsInChildren<Socket>())
+            {
+                var id = Guid.NewGuid().ToString();
+                var socketTag = socket.gameObject.AddComponent<SocketTag>();
+                socketTag.id = id;
+                dict[id] = socketTag;
+            }
+
+            var blockClone = Instantiate(block.gameObject).AddComponent<BlockClone>();
+            Destroy(blockClone.GetComponent<Block>());
+
+            foreach (var collider in blockClone.GetComponentsInChildren<Collider>())
+            {
+                if (collider.GetComponent<BlockLink>() == false)
+                {
+                    DestroyImmediate(collider);                    
+                }
+            }
+            
+            foreach (var link in blockClone.GetComponentsInChildren<BlockLink>())
+            {
+                var collider = link.GetComponent<Collider>();
+                if (collider is BoxCollider == false)
+                {
+                    throw new InvalidOperationException("Only box colliders are supported at this time.");
+                }
+
+                collider.isTrigger = true;
+                (collider as BoxCollider).size -= Vector3.one * .1f;
+            }
+            
+            foreach (var gr in blockClone.GetComponentsInChildren<BlockGrab>())
+            {
+                Destroy(gr);
+            }
+
+            blockClone.GetComponent<Rigidbody>().isKinematic = true;
+
+            blockClone.Block = block;
+            blockClone.CloneToBlockMapping = blockClone
+                .GetComponentsInChildren<SocketTag>()
+                .Select(tag =>
+                {
+                    var id = tag.id;
+
+                    var clone = tag.GetComponent<Socket>();
+                    var block2 = dict[id].GetComponent<Socket>();
+
+                    Destroy(tag);
+                    Destroy(dict[id]);
+
+                    clone.Owner = block2.Owner;
+
+                    return (clone, block2);
+                })
+                .ToDictionary(tuple => tuple.clone, tuple => tuple.block2);
+
+            foreach (var meshRenderer in blockClone.GetComponentsInChildren<MeshRenderer>())
+            {
+                var material = new Material(Shader.Find("Standard"));
+                material.SetupMaterialWithBlendMode(MaterialExtensions.Mode.Fade);
+                meshRenderer.material = material;
+                
+                var addComponent = meshRenderer.gameObject.AddComponent<Outline>();
+                addComponent.OutlineMode = Outline.Mode.OutlineAll;
+            }
+
+            blockClone.gameObject.SetActive(false);
+
+            foreach (var socket in blockClone.GetComponentsInChildren<Socket>())
+            {
+                var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                Destroy(sphere.GetComponent<Collider>());
+                sphere.transform.localScale = Vector3.one * socket.Radius * 2;
+                var mat = sphere.GetComponent<Renderer>().material;
+                mat.color = Color.blue;
+
+                sphere.transform.SetParent(socket.transform, false);
+            }
+
+            return blockClone;
+        }
+
+        private bool IsPositionValid()
+        {
+            return collidersOverllaping
+                .Select(c => c.GetComponentInParent<Block>())
+                .None(b => b != block);
+        }
+
+        private HashSet<Collider> collidersOverllaping = new HashSet<Collider>();
+
+        private void OnTriggerStay(Collider other)
+        {
+            collidersOverllaping.Add(other);
+        }
+
         private void OnDisable()
         {
-            locked = new SocketPair[0];
+            Locked = new (Socket ThisSocket, Socket OtherSocket)[0];
         }
-
-        public LockResult GetLock()
-        {
-            return new LockResult
-            {
-                ThisConnection = new Connection
-                {
-                    Block = block.GetComponent<BlockLink>(),
-                    Sockets = locked.Select(pair => cloneToBlockMapping[pair.ThisSocket]).ToArray()
-                },
-                OtherConnections = locked
-                    .Select(l => l.OtherSocket)
-                    .GroupBy(l => l.GetComponentInParent<BlockLink>())
-                    .Select(g => new Connection
-                    {
-                        Block = g.Key,
-                        Sockets = g.ToArray()
-                    })
-                    .ToArray()
-            };
-        }
-    }
-
-    public class LockResult
-    {
-        public Connection ThisConnection;
-        public Connection[] OtherConnections;
-    }
-
-    public class Connection
-    {
-        public BlockLink Block;
-        public Socket[] Sockets;
-    }
-
-    public class SocketPair
-    {
-        public Socket ThisSocket;
-        public Socket OtherSocket;
     }
 }

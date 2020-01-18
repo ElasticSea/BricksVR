@@ -1083,7 +1083,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b3731333ad34674841aee7b01c71e75, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  blockPrefab: {fileID: 9008803959544824223, guid: 4c2043d756101ae439ca10d6d253cb55,
+  blockPrefab: {fileID: 2932665553333987825, guid: 4ae176c8d43d5bd4db8f553fb879136f,
     type: 3}
   insideTrigger: {fileID: 649411134}
 --- !u!65 &649411134
