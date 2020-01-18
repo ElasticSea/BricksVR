@@ -164,6 +164,13 @@ namespace _Project.Scripts
             var blockGrab = allBlocks[0].gameObject.GetComponent<BlockGrab>();
             blockGrab.SetupGrabPoints(allBlocks[0].GetComponentsInChildren<Collider>());
             blockGrab.Block = blk;
+            
+            // Destroy remaining sockets
+            foreach (var (thisSocket, otherSocket) in result)
+            {
+                Destroy(thisSocket.gameObject);
+                Destroy(otherSocket.gameObject);
+            }
         }
 
         private void OnDrawGizmosSelected()
