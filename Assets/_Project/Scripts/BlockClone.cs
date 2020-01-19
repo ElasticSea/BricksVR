@@ -32,21 +32,9 @@ namespace _Project.Scripts
             var isValid = IsPositionValid();
             collidersOverllaping.Clear();
 
-            var color = isValid ? Color.blue : Color.red;
-            var component = GetComponent<Outline>();
-            component.OutlineColor = color;
-            component.UpdateMaterialProperties();
-
-            foreach (var renderer in GetComponentsInChildren<MeshRenderer>())
-            {
-                foreach (var mat in renderer.materials)
-                {
-                    mat.color = color.SetAlpha(.4f);
-                }
-            }
-
             if (isValid == false)
             {
+                ColorBlock(false);
                 Snap = new (Socket ThisSocket, Socket OtherSocket)[0];
                 return;
             }
@@ -79,10 +67,34 @@ namespace _Project.Scripts
                 })
                 .ToArray();
 
+            if (Snap.Length < 2)
+            {
+                ColorBlock(false);
+                Snap = new (Socket ThisSocket, Socket OtherSocket)[0];
+                return;
+            }
 
             foreach (var pair in Snap)
             {
                 pair.ThisSocket.transform.GetChild(0).gameObject.SetActive(true);
+            }
+            
+            ColorBlock(true);
+        }
+
+        private void ColorBlock(bool isValid)
+        {
+            var color = isValid ? Color.blue : Color.red;
+            var component = GetComponent<Outline>();
+            component.OutlineColor = color;
+            component.UpdateMaterialProperties();
+
+            foreach (var renderer in GetComponentsInChildren<MeshRenderer>())
+            {
+                foreach (var mat in renderer.materials)
+                {
+                    mat.color = color.SetAlpha(.4f);
+                }
             }
         }
 
