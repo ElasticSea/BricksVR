@@ -76,7 +76,7 @@ namespace _Project.Scripts
                 Gizmos.DrawLine(transform.position, candidate.transform.position);
             }
 
-            var color = Type == SocketType.Male ? Color.red : Color.blue;
+            var color = Type == SocketType.Male ? Color.blue : Color.red;
             Gizmos.matrix = transform.localToWorldMatrix;
             Gizmos.color = color.SetAlpha(.25f);
             Gizmos.DrawSphere(Vector3.zero, Radius);
