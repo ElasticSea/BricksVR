@@ -1,10 +1,13 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace _Project.Scripts
 {
     public class BlockLink : MonoBehaviour
     {
+        [SerializeField] private bool anchor;
+        
         private HashSet<BlockLink> connections = new HashSet<BlockLink>();
 
         public void Connect(BlockLink link)
@@ -56,6 +59,14 @@ namespace _Project.Scripts
                     GetAllEdges(connection, allConnections);
                 }
             }
+        }
+
+        public bool IsAnchored => GetAllLinks().Any(l => l.anchor);
+
+        public bool Anchor
+        {
+            get => anchor;
+            set => anchor = value;
         }
     }
 }

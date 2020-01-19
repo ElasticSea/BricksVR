@@ -103,7 +103,7 @@ namespace _Project.Scripts
 
         public void BeginSnap()
         {
-            SwitchLayerInChildren("Default", "Snap");
+            SwitchLayerInChildren(transform, "Default", "Snap");
             snapActive = true;
         }
 
@@ -113,16 +113,21 @@ namespace _Project.Scripts
 
             if (result.Any())
             {
-                ConnectBlocks(result);
+                var newBlock = ConnectBlocks(result);
+                SwitchLayerInChildren(newBlock.transform, "Snap", "Default");
             }
-
-            SwitchLayerInChildren("Snap", "Default");
+            else
+            {
+                transform.GetComponent<Rigidbody>().isKinematic = false;
+                SwitchLayerInChildren(transform, "Snap", "Default");
+            }
+            
             snapActive = false;
         }
 
-        private void SwitchLayerInChildren(string from, string to)
+        private void SwitchLayerInChildren(Transform target, string from, string to)
         {
-            foreach (var child in transform.AllChildren(true))
+            foreach (var child in target.AllChildren(true).Where(it => it))
             {
                 if (child.gameObject.layer == LayerMask.NameToLayer(from))
                 {
@@ -131,7 +136,7 @@ namespace _Project.Scripts
             }
         }
 
-        private void ConnectBlocks((Socket ThisSocket, Socket OtherSocket)[] result)
+        private Block ConnectBlocks((Socket ThisSocket, Socket OtherSocket)[] result)
         {
             // Align this block
             transform.CopyWorldFrom(blockClone.transform);
@@ -156,6 +161,8 @@ namespace _Project.Scripts
             {
                 DestroyImmediate(block.GetComponent<Rigidbody>());
                 DestroyImmediate(block.GetComponent<Block>());
+                DestroyImmediate(block.GetComponent<Grabbable>());
+                DestroyImmediate(block.GetComponent<BlockGrab>());
             }
             
             foreach (var block in allBlocks.Skip(1))
@@ -174,16 +181,26 @@ namespace _Project.Scripts
             var newRb = allBlocks[0].gameObject.AddComponent<Rigidbody>();
             newRb.interpolation = RigidbodyInterpolation.Interpolate;
             var blk = allBlocks[0].gameObject.AddComponent<Block>();
-            var blockGrab = allBlocks[0].gameObject.GetComponent<BlockGrab>();
-            blockGrab.SetupGrabPoints(allBlocks[0].GetComponentsInChildren<Collider>());
-            blockGrab.Block = blk;
             
             // Destroy remaining sockets
             foreach (var (thisSocket, otherSocket) in result)
             {
-                Destroy(thisSocket.gameObject);
-                Destroy(otherSocket.gameObject);
+                DestroyImmediate(thisSocket.gameObject);
+                DestroyImmediate(otherSocket.gameObject);
             }
+
+            var isAnchored = blk.GetComponentInChildren<BlockLink>().IsAnchored;
+
+            if (isAnchored == false)
+            {
+                var grabbable = allBlocks[0].gameObject.AddComponent<Grabbable>();
+                var blockGrab = allBlocks[0].gameObject.AddComponent<BlockGrab>();
+                blockGrab.Block = blk;
+                blockGrab.SetupGrabPoints(allBlocks[0].GetComponentsInChildren<Collider>());
+            }
+
+            blk.GetComponent<Rigidbody>().isKinematic = isAnchored;
+            return blk;
         }
 
         private void OnDrawGizmosSelected()

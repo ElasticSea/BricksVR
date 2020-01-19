@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine;
 
 namespace _Project.Scripts
@@ -27,7 +28,7 @@ namespace _Project.Scripts
 
         public void SetupGrabPoints(Collider[] colliders)
         {
-            grabbable.SetupGrabPoints(colliders);
+            grabbable.SetupGrabPoints(colliders.Where(c => c).ToArray());
         }
     }
 }

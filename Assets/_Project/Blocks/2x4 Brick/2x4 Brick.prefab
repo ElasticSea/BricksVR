@@ -122,6 +122,7 @@ GameObject:
   - component: {fileID: 2932665553333987825}
   - component: {fileID: 3636985591599435318}
   - component: {fileID: 2858517201831289442}
+  - component: {fileID: 3103475648839395360}
   m_Layer: 0
   m_Name: 2x4 Brick
   m_TagString: Untagged
@@ -168,7 +169,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d0835633139a46bb85ed5a763a448823, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  grabbable: {fileID: 0}
+  grabbable: {fileID: 3103475648839395360}
   block: {fileID: 2932665553333987825}
 --- !u!54 &2858517201831289442
 Rigidbody:
@@ -186,6 +187,24 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &3103475648839395360
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6204042191286633978}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 417460ab7f8158044a533edc42f46a04, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_allowOffhandGrab: 1
+  m_snapPosition: 0
+  m_snapOrientation: 0
+  m_snapOffset: {fileID: 0}
+  m_grabPoints:
+  - {fileID: 282680711485174299}
 --- !u!1001 &4310141951729492739
 PrefabInstance:
   m_ObjectHideFlags: 0
