@@ -7,8 +7,10 @@ namespace _Project.Scripts
     {
         public event Action<(OVRGrabber hand, Collider grabPoint)> OnGrabBegin = tuple => { };
         public event Action<(Vector3 linearVelocity, Vector3 angularVelocity)> OnGrabEnd = tuple => { };
+        
         public override void GrabBegin(OVRGrabber hand, Collider grabPoint)
         {
+            m_grabbedKinematic = false;
             base.GrabBegin(hand, grabPoint);
             OnGrabBegin((hand, grabPoint));
         }

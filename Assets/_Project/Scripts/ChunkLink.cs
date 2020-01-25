@@ -4,32 +4,32 @@ using UnityEngine;
 
 namespace _Project.Scripts
 {
-    public class BlockLink : MonoBehaviour
+    public class ChunkLink : MonoBehaviour
     {
         [SerializeField] private bool anchor;
         
-        private HashSet<BlockLink> connections = new HashSet<BlockLink>();
+        private HashSet<ChunkLink> connections = new HashSet<ChunkLink>();
 
-        public void Connect(BlockLink link)
+        public void Connect(ChunkLink link)
         {
             link.Add(this);
             this.Add(link);
         }
 
-        private void Add(BlockLink link)
+        private void Add(ChunkLink link)
         {
             connections.Add(link);
         }
 
-        public HashSet<BlockLink> GetAllLinks()
+        public HashSet<ChunkLink> GetAllLinks()
         {
-            var allConnections = new HashSet<BlockLink>();
+            var allConnections = new HashSet<ChunkLink>();
             allConnections.Add(this);
             GetAllLinks(this, allConnections);
             return allConnections;
         }
 
-        private void GetAllLinks(BlockLink parent, HashSet<BlockLink> allConnections)
+        private void GetAllLinks(ChunkLink parent, HashSet<ChunkLink> allConnections)
         {
             foreach (var connection in parent.connections)
             {
@@ -41,14 +41,14 @@ namespace _Project.Scripts
             }
         }
 
-        public HashSet<(BlockLink,BlockLink)> GetAllEdges()
+        public HashSet<(ChunkLink,ChunkLink)> GetAllEdges()
         {
-            var allConnections = new HashSet<(BlockLink,BlockLink)>();
+            var allConnections = new HashSet<(ChunkLink,ChunkLink)>();
             GetAllEdges(this, allConnections);
             return allConnections;
         }
 
-        private void GetAllEdges(BlockLink parent, HashSet<(BlockLink,BlockLink)> allConnections)
+        private void GetAllEdges(ChunkLink parent, HashSet<(ChunkLink,ChunkLink)> allConnections)
         {
             foreach (var connection in parent.connections)
             {

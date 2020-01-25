@@ -7,10 +7,9 @@ namespace _Project.Scripts
 {
     public class Block : MonoBehaviour
     {
-        private BlockClone blockClone;
-        private bool snapActive;
+        [SerializeField] private SnapPreview snapPreview;
 
-        private (Transform thisSocket, Transform otherSocket)[] GetConnections()
+        public (Transform thisSocket, Transform otherSocket)[] GetConnections()
         {
             var sockets = transform.GetComponentsInChildren<Socket>();
             var connected = new Socket[sockets.Length];
@@ -46,161 +45,17 @@ namespace _Project.Scripts
 
         private void Start()
         {
-            blockClone = BlockClone.SetupBlock(this);
-        }
-        
-        private void FixedUpdate()
-        {
-            var snapSucessful = TrySnap();
-            blockClone.gameObject.SetActive(snapSucessful);
-        }
-
-        private bool TrySnap()
-        {
-            if (snapActive == false) return false;
-
-            var connections = GetConnections();
-
-            if (connections.Length < 2) return false;
-
-            blockClone.gameObject.SetActive(true);
-
-            // Chose two closes connections and choose origin and alignment.
-            var thisSocketA = connections[0].thisSocket;
-            var otherSocketA = connections[0].otherSocket;
-            var thisSocketB = connections[1].thisSocket;
-            var otherSocketB = connections[1].otherSocket;
-
-            Align(thisSocketA, thisSocketB, otherSocketA, otherSocketB);
-            
-            return true;
-        }
-
-        private void Align(Transform thisA, Transform thisB, Transform otherA, Transform otherB)
-        {
-            var thisDir = (thisB.position - thisA.position).normalized;
-            var otherDir = (otherB.position - otherA.position).normalized;
-
-            var thisToOtherRotation = Quaternion.FromToRotation(thisDir, otherDir);
-
-            // Correct for rotation along the direction (multiple valid states for resulting rotation)
-            var correctedUpVector = thisToOtherRotation * -thisA.up;
-            var angle = Vector3.SignedAngle(correctedUpVector, otherA.up, otherDir);
-            var correction = Quaternion.AngleAxis(angle, otherDir);
-
-            var targetRotation = correction * thisToOtherRotation * transform.rotation;
-
-            blockClone.transform.rotation = targetRotation;
-            
-            // TODO Get the resulting position and rotation without touching the transforms
-            // Adjust position
-            blockClone.transform.position = transform.position;
-            var blockSocketLocalPosition = transform.InverseTransformPoint(thisA.position);
-            var adjustedWorldPosition = blockClone.transform.TransformPoint(blockSocketLocalPosition);
-            var offset = otherA.position - adjustedWorldPosition;
-            blockClone.transform.position += offset;
+            snapPreview = SnapPreview.CreateFromBlock(this);
         }
 
         public void BeginSnap()
         {
-            SwitchLayerInChildren(transform, "Default", "Snap");
-            snapActive = true;
+            snapPreview.BeginSnap();
         }
 
         public void EndSnap()
         {
-            var result = blockClone.Snap;
-
-            if (result.Any())
-            {
-                var newBlock = ConnectBlocks(result);
-                SwitchLayerInChildren(newBlock.transform, "Snap", "Default");
-            }
-            else
-            {
-                transform.GetComponent<Rigidbody>().isKinematic = false;
-                SwitchLayerInChildren(transform, "Snap", "Default");
-            }
-            
-            snapActive = false;
-        }
-
-        private void SwitchLayerInChildren(Transform target, string from, string to)
-        {
-            foreach (var child in target.AllChildren(true).Where(it => it))
-            {
-                if (child.gameObject.layer == LayerMask.NameToLayer(from))
-                {
-                    child.gameObject.layer = LayerMask.NameToLayer(to);
-                }
-            }
-        }
-
-        private Block ConnectBlocks((Socket ThisSocket, Socket OtherSocket)[] result)
-        {
-            // Align this block
-            transform.CopyWorldFrom(blockClone.transform);
-            
-            var allBlocks = result
-                .SelectMany(tuple => new[] {tuple.ThisSocket, tuple.OtherSocket})
-                .Select(socket => socket.GetComponentInParent<Block>().gameObject)
-                .Distinct()
-                .ToList();
-
-            foreach (var (thisSocket, otherSocket) in result)
-            {
-                var thisLink = thisSocket.GetComponentInParent<BlockLink>();
-                var otherLink = otherSocket.GetComponentInParent<BlockLink>();
-
-                // Just connnect the links
-                thisLink.Connect(otherLink);
-            }
-
-            DestroyImmediate(blockClone.gameObject);
-            foreach (var block in allBlocks)
-            {
-                DestroyImmediate(block.GetComponent<Rigidbody>());
-                DestroyImmediate(block.GetComponent<Block>());
-                DestroyImmediate(block.GetComponent<Grabbable>());
-                DestroyImmediate(block.GetComponent<BlockGrab>());
-            }
-            
-            foreach (var block in allBlocks.Skip(1))
-            {
-                foreach (var child in block.transform.Children())
-                {
-                    child.transform.SetParent(allBlocks[0].transform, true);
-                    
-                    // Snap position & rotation
-                    child.transform.localPosition = child.transform.localPosition.Snap(0.0001f);
-                    child.transform.localRotation = Quaternion.Euler(child.transform.localRotation.eulerAngles.Snap(45f));
-                }
-                DestroyImmediate(block);
-            }
-
-            var newRb = allBlocks[0].gameObject.AddComponent<Rigidbody>();
-            newRb.interpolation = RigidbodyInterpolation.Interpolate;
-            var blk = allBlocks[0].gameObject.AddComponent<Block>();
-            
-            // Destroy remaining sockets
-            foreach (var (thisSocket, otherSocket) in result)
-            {
-                DestroyImmediate(thisSocket.gameObject);
-                DestroyImmediate(otherSocket.gameObject);
-            }
-
-            var isAnchored = blk.GetComponentInChildren<BlockLink>().IsAnchored;
-
-            if (isAnchored == false)
-            {
-                var grabbable = allBlocks[0].gameObject.AddComponent<Grabbable>();
-                var blockGrab = allBlocks[0].gameObject.AddComponent<BlockGrab>();
-                blockGrab.Block = blk;
-                blockGrab.SetupGrabPoints(allBlocks[0].GetComponentsInChildren<Collider>());
-            }
-
-            blk.GetComponent<Rigidbody>().isKinematic = isAnchored;
-            return blk;
+            snapPreview.EndSnap();
         }
 
         private void OnDrawGizmosSelected()
@@ -223,7 +78,7 @@ namespace _Project.Scripts
                 Gizmos.DrawLine(from, to);
             }
 
-            foreach (var (a, b) in GetComponentInChildren<BlockLink>().GetAllEdges())
+            foreach (var (a, b) in GetComponentInChildren<ChunkLink>().GetAllEdges())
             {
                 Gizmos.color = Color.yellow;
 
@@ -233,6 +88,11 @@ namespace _Project.Scripts
                 Gizmos.DrawSphere(from, .0025f);
                 Gizmos.DrawSphere(to, .0025f);
             }
+        }
+
+        private void OnDestroy()
+        {
+            DestroyImmediate(snapPreview.gameObject);
         }
     }
 }

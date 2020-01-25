@@ -368,7 +368,7 @@ public class OVRGrabber : MonoBehaviour
     {
         m_grabbedObj.GrabEnd(linearVelocity, angularVelocity);
         if(m_parentHeldObject) m_grabbedObj.transform.parent = null;
-        SetPlayerIgnoreCollision(m_grabbedObj.gameObject, false);
+        if(m_grabbedObj)SetPlayerIgnoreCollision(m_grabbedObj.gameObject, false);
         m_grabbedObj = null;
     }
 
