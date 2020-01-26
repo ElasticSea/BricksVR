@@ -166,14 +166,25 @@ namespace _Project.Scripts
             var connections = block.GetConnections();
 
             if (connections.Length < 2) return false;
-
+            
             // Chose two closes connections and choose origin and alignment.
             var thisSocketA = connections[0].thisSocket;
             var otherSocketA = connections[0].otherSocket;
             var thisSocketB = connections[1].thisSocket;
             var otherSocketB = connections[1].otherSocket;
+            
+            var directionA = otherSocketA.up;
+            var directionB = otherSocketA.position - otherSocketB.position;
 
-            Align(thisSocketA, thisSocketB, otherSocketA, otherSocketB, block.transform, transform);
+            // Check if the directions are collinear
+            if (Math.Abs(directionA.Dot(directionB)) > 0.0001f)
+            {
+                if (connections.Length < 3) return false;
+                
+                thisSocketB = connections[2].thisSocket;
+                otherSocketB = connections[2].otherSocket;
+            }
+            
             Align(thisSocketA, thisSocketB, otherSocketA, otherSocketB, block.transform);
             
             return true;
