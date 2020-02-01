@@ -578,6 +578,7 @@ GameObject:
   - component: {fileID: 277704328}
   - component: {fileID: 277704330}
   - component: {fileID: 277704329}
+  - component: {fileID: 277704331}
   m_Layer: 0
   m_Name: L Touch Grab
   m_TagString: Untagged
@@ -638,6 +639,18 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &277704331
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 277704327}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 943ff486f93e8cc47977cb88b18742b8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &396372390
 GameObject:
   m_ObjectHideFlags: 0
@@ -786,6 +799,7 @@ GameObject:
   - component: {fileID: 1329456417}
   - component: {fileID: 1329456416}
   - component: {fileID: 1329456418}
+  - component: {fileID: 1329456419}
   m_Layer: 0
   m_Name: R Touch Grab
   m_TagString: Untagged
@@ -860,6 +874,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   controller: 2
   splitVolume: {fileID: 595148910}
+--- !u!114 &1329456419
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1329456414}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 943ff486f93e8cc47977cb88b18742b8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1518730835 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 100004, guid: 126d619cf4daa52469682f85c1378b4a,
