@@ -1,23 +1,22 @@
 using System.Linq;
 using UnityEngine;
 
-namespace _Project.Scripts
+namespace _Project.Scripts.Blocks
 {
-    [RequireComponent(typeof(Grabbable))]
-    public class BlockGrab : MonoBehaviour
+    public class BlockGrabbable : MonoBehaviour
     {
-        [SerializeField] private Block block;
+        [SerializeField] private BlockGroup blockGroup;
 
         private void Awake()
         {
             var grabbable = GetComponent<Grabbable>();
-            grabbable.OnGrabBegin += obj => block.BeginSnap();
-            grabbable.OnGrabEnd += obj => block.EndSnap();
+            grabbable.OnGrabBegin += obj => blockGroup.BeginSnap();
+            grabbable.OnGrabEnd += obj => blockGroup.EndSnap();
         }
 
-        public Block Block
+        public BlockGroup BlockGroup
         {
-            set => block = value;
+            set => blockGroup = value;
         }
 
         public void SetupGrabPoints(Collider[] colliders)

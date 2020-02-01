@@ -1,15 +1,14 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using _Framework.Scripts.Extensions;
 using UnityEngine;
 
-namespace _Project.Scripts
+namespace _Project.Scripts.Blocks
 {
     public class SnapPreview : MonoBehaviour
     {
-        private Block block;
+        private BlockGroup blockGroup;
         private Dictionary<Socket, Socket> cloneToBlockMapping;
         public (Socket ThisSocket, Socket OtherSocket)[] Snap { get; private set; }
 
@@ -37,7 +36,7 @@ namespace _Project.Scripts
                 return;
             }
             
-            var blockSockets = block.GetComponentsInChildren<Socket>().ToSet();
+            var blockSockets = blockGroup.GetComponentsInChildren<Socket>().ToSet();
 
             var cloneSockets = GetComponentsInChildren<Socket>();
             var candidates = cloneSockets
@@ -94,8 +93,8 @@ namespace _Project.Scripts
         private bool IsPositionValid()
         {
             return collidersOverllaping
-                .Select(c => c.GetComponentInParent<Block>())
-                .None(b => b != block);
+                .Select(c => c.GetComponentInParent<BlockGroup>())
+                .None(b => b != blockGroup);
         }
 
         private HashSet<Collider> collidersOverllaping = new HashSet<Collider>();
@@ -116,7 +115,7 @@ namespace _Project.Scripts
             if (Snap.Any())
             {
                 // Copy the transform back
-                block.transform.CopyWorldFrom(transform);
+                blockGroup.transform.CopyWorldFrom(transform);
                 
                 var newBlock = BlockFactory.ConnectBlocks(Snap);
                 SwitchLayerInChildren(newBlock.transform, "Snap", "Default");
@@ -163,7 +162,7 @@ namespace _Project.Scripts
 
         private bool TrySnap()
         {
-            var connections = block.GetConnections();
+            var connections = blockGroup.GetConnections();
 
             if (connections.Length < 2) return false;
             
@@ -185,7 +184,7 @@ namespace _Project.Scripts
                 otherSocketB = connections[2].otherSocket;
             }
             
-            Align(thisSocketA, thisSocketB, otherSocketA, otherSocketB, block.transform);
+            Align(thisSocketA, thisSocketB, otherSocketA, otherSocketB, blockGroup.transform);
             
             return true;
         }
@@ -215,9 +214,9 @@ namespace _Project.Scripts
             transform.position += offset;
         }
         
-        public static SnapPreview CreateFromBlock(Block block)
+        public static SnapPreview CreateFromBlock(BlockGroup blockGroup)
         {
-            var (instance, mappings) = SaveMappings(block);
+            var (instance, mappings) = SaveMappings(blockGroup);
 
             // Remove useless components
             instance.GetComponentsInChildren<Component>().Foreach(c =>
@@ -227,7 +226,7 @@ namespace _Project.Scripts
                 if (c is Renderer) return;
                 if (c is Rigidbody) return;
                 if (c is Socket) return;
-                if (c is Collider && c.GetComponent<ChunkLink>()) return;
+                if (c is Collider && c.GetComponent<Block>()) return;
 
                 DestroyImmediate(c);
             });
@@ -257,7 +256,7 @@ namespace _Project.Scripts
 
             var blockClone = instance.AddComponent<SnapPreview>();
             
-            blockClone.block = block;
+            blockClone.blockGroup = blockGroup;
             blockClone.material = material;
             blockClone.cloneToBlockMapping = mappings;
             blockClone.renderers = blockClone.GetComponentsInChildren<Renderer>();
@@ -273,11 +272,11 @@ namespace _Project.Scripts
         }
         
         // Make sure to tag the sockets so we know which socket on the preview correspond to the block one.
-        private static (GameObject clone, Dictionary<Socket, Socket> mappings) SaveMappings(Block block)
+        private static (GameObject clone, Dictionary<Socket, Socket> mappings) SaveMappings(BlockGroup blockGroup)
         {
             var dict = new Dictionary<string, SocketTag>();
 
-            foreach (var socket in block.GetComponentsInChildren<Socket>())
+            foreach (var socket in blockGroup.GetComponentsInChildren<Socket>())
             {
                 var id = Guid.NewGuid().ToString();
                 var socketTag = socket.gameObject.AddComponent<SocketTag>();
@@ -285,7 +284,7 @@ namespace _Project.Scripts
                 dict[id] = socketTag;
             }
 
-            var instance = Instantiate(block.gameObject);
+            var instance = Instantiate(blockGroup.gameObject);
 
             var mappings = instance
                 .GetComponentsInChildren<SocketTag>()

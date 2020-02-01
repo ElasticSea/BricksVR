@@ -649,7 +649,7 @@ namespace _Framework.Scripts.Extensions
 			var boundsInObject = go.GetComponentsInChildren<MeshFilter>(true)
 				.Select(mf =>
 				{
-					var bounds = (mf.mesh ?? mf.sharedMesh).bounds;
+					var bounds = (Application.isEditor ? mf.sharedMesh : mf.mesh ?? mf.sharedMesh).bounds;
 					var localBound = mf.transform.TransformBounds(go.transform, bounds);
 					return localBound;
 				})

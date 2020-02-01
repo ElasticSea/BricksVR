@@ -1,12 +1,11 @@
-using System;
 using _Framework.Scripts.Extensions;
 using UnityEngine;
 
-namespace _Project.Scripts
+namespace _Project.Scripts.Blocks
 {
     public class BlockPlacer : MonoBehaviour
     {
-        [SerializeField] private Block[] blocks;
+        [SerializeField] private BlockGroup[] blocks;
         [SerializeField] private float offset = .25f;
 
         private void Awake()
@@ -19,9 +18,9 @@ namespace _Project.Scripts
             }
         }
 
-        private Vector3 Spawn(Block blockPrefab, Vector3 position)
+        private Vector3 Spawn(BlockGroup blockGroupPrefab, Vector3 position)
         {
-            var instance = Instantiate(blockPrefab, transform, false);
+            var instance = Instantiate(blockGroupPrefab, transform, false);
             var rb = instance.GetComponent<Rigidbody>();
             rb.isKinematic = true;
             instance.transform.localPosition = position;
@@ -32,7 +31,7 @@ namespace _Project.Scripts
             
             instance.GetComponent<Grabbable>().OnGrabBegin += tuple =>
             {
-                Spawn(blockPrefab, positionCopy);
+                Spawn(blockGroupPrefab, positionCopy);
             };
             return position;
         }

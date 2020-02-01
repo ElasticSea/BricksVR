@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using _Project.Scripts.Blocks;
 using UnityEngine;
 
 namespace _Project.Scripts
@@ -9,6 +10,8 @@ namespace _Project.Scripts
         [SerializeField] private Block owner;
         [SerializeField] private SocketType type;
         [SerializeField] private float radius = 0.125f;
+
+        [SerializeField] private Socket connectedSocket;
         
         private SphereCollider trigger;
 
@@ -46,10 +49,13 @@ namespace _Project.Scripts
             }
         }
 
+        public Socket ConnectedSocket => connectedSocket;
+
         private void Awake()
         {
             trigger = gameObject.AddComponent<SphereCollider>();
             trigger.isTrigger = trigger;
+            trigger.enabled = connectedSocket == false;
             Radius = radius;
         }
 
@@ -65,6 +71,35 @@ namespace _Project.Scripts
                 .Where(s => s.Type != Type)
                 .Where(s => s.Owner != Owner)
                 .ToArray();
+        }
+        
+        public void Connect(Socket socket)
+        {
+            if (connectedSocket == null)
+            {
+                AttachSocket(socket);
+                socket.AttachSocket(this);
+            }
+        }
+
+        private void AttachSocket(Socket other)
+        {
+            connectedSocket = other;
+            trigger.enabled = false;
+        }
+        
+        public void Disconnect()
+        {
+            if (connectedSocket != null)
+            {
+                connectedSocket.DetachSocket();
+                DetachSocket();
+            }
+        }
+        private void DetachSocket()
+        {
+            connectedSocket = null;
+            trigger.enabled = true;
         }
 
         private void OnDrawGizmos()

@@ -1,11 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using _Framework.Scripts.Extensions;
 using UnityEngine;
 
-namespace _Project.Scripts
+namespace _Project.Scripts.Blocks
 {
-    public class Block : MonoBehaviour
+    public class BlockGroup : MonoBehaviour
     {
         [SerializeField] private SnapPreview snapPreview;
 
@@ -61,6 +62,38 @@ namespace _Project.Scripts
             snapPreview.EndSnap();
         }
 
+        public List<ISet<Block>> SplitBy(ISet<Block> chunk)
+        {
+            var all = GetComponentInChildren<Block>().GetBlocksInGroup().ToList();
+            var rest = all.Except(chunk).ToList();
+            foreach (var link in rest)
+            {
+                foreach (var socket in link.Sockets)
+                {
+                    if (socket.ConnectedSocket != null)
+                    {
+                        if (chunk.Contains(socket.ConnectedSocket.Owner))
+                        {
+                            socket.Disconnect();
+                        }
+                    }
+                }
+            }
+            var groups = new List<ISet<Block>>();
+            
+            groups.Add(chunk);
+            
+            while (rest.Any())
+            {
+                var first = rest.First();
+                var groupA = first.GetBlocksInGroup(chunk);
+                rest = rest.Except(groupA).ToList();
+                groups.Add(groupA);
+            }
+
+            return groups;
+        }
+
         private void OnDrawGizmosSelected()
         {
             var connections = GetConnections();
@@ -81,7 +114,7 @@ namespace _Project.Scripts
                 Gizmos.DrawLine(from, to);
             }
 
-            foreach (var (a, b) in GetComponentInChildren<ChunkLink>().GetAllEdges())
+            foreach (var (a, b) in GetComponentInChildren<Block>().GetAllEdges())
             {
                 Gizmos.color = Color.yellow;
 
