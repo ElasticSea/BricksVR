@@ -60,5 +60,13 @@ namespace _Framework.Scripts.Extensions
             var worldExtents = collider.transform.TransformVector(collider.extents);
             return Physics.OverlapBox(worldCenter, worldExtents, collider.transform.rotation);
         }
+
+        public static Collider[] OverlapSphere(this SphereCollider collider)
+        {
+            var worldCenter = collider.transform.TransformPoint(collider.center);
+            var scale = collider.transform.lossyScale;
+            var radius = (scale.x + scale.y + scale.z) / 3 * collider.radius;
+            return Physics.OverlapSphere(worldCenter, radius);
+        }
     }
 }

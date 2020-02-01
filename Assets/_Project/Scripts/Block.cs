@@ -21,7 +21,10 @@ namespace _Project.Scripts
                 var candidate = socket.GetComponent<Socket>().Trigger();
                 if (candidate.IsEmpty() == false)
                 {
-                    var closest = candidate.OrderBy(o => o.transform.position.Distance(socket.transform.position)).First();
+                    var closest = candidate
+                        .OrderBy(o => o.transform.position.Distance(socket.transform.position))
+                        .First();
+                    
                     var sockets2 = closest;
                     if (sockets2.Type != socket.Type)
                     {
@@ -92,7 +95,8 @@ namespace _Project.Scripts
 
         private void OnDestroy()
         {
-            DestroyImmediate(snapPreview.gameObject);
+            if (snapPreview)
+                DestroyImmediate(snapPreview.gameObject);
         }
     }
 }
